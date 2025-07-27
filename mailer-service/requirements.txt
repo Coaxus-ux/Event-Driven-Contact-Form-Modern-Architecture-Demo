@@ -1,0 +1,9 @@
+kafka-python==2.0.2
+pystache==0.6.5
+marshmallow==3.20.1
+jsonschema==4.19.0
+python-dotenv==1.0.0
+email-validator==2.0.0
+jinja2==3.1.2
+requests==2.31.0
+
