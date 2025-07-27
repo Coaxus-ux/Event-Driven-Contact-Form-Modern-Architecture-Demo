@@ -1,0 +1,251 @@
+{
+  "dashboard": {
+    "id": null,
+    "title": "Event-Driven PoC Dashboard",
+    "tags": ["event-driven", "microservices", "kafka"],
+    "style": "dark",
+    "timezone": "browser",
+    "refresh": "30s",
+    "time": {
+      "from": "now-1h",
+      "to": "now"
+    },
+    "panels": [
+      {
+        "id": 1,
+        "title": "Service Health Status",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "up",
+            "legendFormat": "{{job}}"
+          }
+        ],
+        "fieldConfig": {
+          "defaults": {
+            "color": {
+              "mode": "thresholds"
+            },
+            "thresholds": {
+              "steps": [
+                {"color": "red", "value": 0},
+                {"color": "green", "value": 1}
+              ]
+            },
+            "mappings": [
+              {"options": {"0": {"text": "Down"}}, "type": "value"},
+              {"options": {"1": {"text": "Up"}}, "type": "value"}
+            ]
+          }
+        },
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0}
+      },
+      {
+        "id": 2,
+        "title": "Request Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(requests_total[5m])",
+            "legendFormat": "{{job}} - {{method}} {{endpoint}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Requests/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0}
+      },
+      {
+        "id": 3,
+        "title": "Response Time (95th percentile)",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(request_duration_seconds_bucket[5m]))",
+            "legendFormat": "{{job}} - {{method}} {{endpoint}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Seconds", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8}
+      },
+      {
+        "id": 4,
+        "title": "Error Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(requests_total{status=~\"4..|5..\"}[5m]) / rate(requests_total[5m])",
+            "legendFormat": "{{job}} Error Rate"
+          }
+        ],
+        "yAxes": [
+          {"label": "Error Rate", "min": 0, "max": 1}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8}
+      },
+      {
+        "id": 5,
+        "title": "Form Submissions",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(form_submissions_total[5m])",
+            "legendFormat": "{{form_type}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Submissions/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16}
+      },
+      {
+        "id": 6,
+        "title": "Event Processing Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(events_processed_total[5m])",
+            "legendFormat": "{{job}} - {{event_type}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Events/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16}
+      },
+      {
+        "id": 7,
+        "title": "Email Send Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(emails_sent_total[5m])",
+            "legendFormat": "{{template}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Emails/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 24}
+      },
+      {
+        "id": 8,
+        "title": "Workflow Execution Rate",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "rate(workflows_executed_total[5m])",
+            "legendFormat": "{{workflow_id}} - {{status}}"
+          }
+        ],
+        "yAxes": [
+          {"label": "Workflows/sec", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 24}
+      },
+      {
+        "id": 9,
+        "title": "Memory Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "memory_usage_bytes / (1024*1024*1024)",
+            "legendFormat": "{{job}} Memory (GB)"
+          }
+        ],
+        "yAxes": [
+          {"label": "GB", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32}
+      },
+      {
+        "id": 10,
+        "title": "CPU Usage",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "cpu_usage_percent",
+            "legendFormat": "{{job}} CPU %"
+          }
+        ],
+        "yAxes": [
+          {"label": "Percent", "min": 0, "max": 100}
+        ],
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32}
+      },
+      {
+        "id": 11,
+        "title": "Kafka Metrics",
+        "type": "graph",
+        "targets": [
+          {
+            "expr": "kafka_topic_partition_current_offset",
+            "legendFormat": "{{topic}} - Partition {{partition}} Offset"
+          },
+          {
+            "expr": "kafka_consumer_lag_sum",
+            "legendFormat": "Consumer Lag"
+          }
+        ],
+        "yAxes": [
+          {"label": "Messages", "min": 0}
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40}
+      },
+      {
+        "id": 12,
+        "title": "Active Connections",
+        "type": "stat",
+        "targets": [
+          {
+            "expr": "active_requests",
+            "legendFormat": "{{job}} Active Requests"
+          },
+          {
+            "expr": "active_workflows",
+            "legendFormat": "Active Workflows"
+          },
+          {
+            "expr": "smtp_connections_active",
+            "legendFormat": "SMTP Connections"
+          }
+        ],
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 48}
+      }
+    ],
+    "templating": {
+      "list": [
+        {
+          "name": "service",
+          "type": "query",
+          "query": "label_values(up, job)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        },
+        {
+          "name": "instance",
+          "type": "query",
+          "query": "label_values(up{job=~\"$service\"}, instance)",
+          "refresh": 1,
+          "includeAll": true,
+          "multi": true
+        }
+      ]
+    },
+    "annotations": {
+      "list": [
+        {
+          "name": "Deployments",
+          "datasource": "Prometheus",
+          "expr": "changes(service_info[1h]) > 0",
+          "titleFormat": "Deployment",
+          "textFormat": "Service {{job}} deployed"
+        }
+      ]
+    }
+  }
+}
+

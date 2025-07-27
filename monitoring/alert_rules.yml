@@ -1,0 +1,208 @@
+# Prometheus alert rules for Event-Driven PoC
+
+groups:
+  - name: service_health
+    rules:
+      - alert: ServiceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service {{ $labels.job }} is down"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been down for more than 1 minute."
+
+      - alert: ServiceUnhealthy
+        expr: health_status == 0
+        for: 2m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Service {{ $labels.job }} is unhealthy"
+          description: "Service {{ $labels.job }} on {{ $labels.instance }} has been reporting unhealthy status for more than 2 minutes."
+
+  - name: api_service
+    rules:
+      - alert: HighErrorRate
+        expr: rate(requests_total{status=~"4..|5.."}[5m]) / rate(requests_total[5m]) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High error rate on API service"
+          description: "API service error rate is {{ $value | humanizePercentage }} for the last 5 minutes."
+
+      - alert: HighResponseTime
+        expr: histogram_quantile(0.95, rate(request_duration_seconds_bucket[5m])) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High response time on API service"
+          description: "95th percentile response time is {{ $value }}s for the last 5 minutes."
+
+      - alert: FormSubmissionFailures
+        expr: rate(form_submissions_total{status="error"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High form submission failure rate"
+          description: "Form submission failure rate is {{ $value }} per second."
+
+      - alert: KafkaPublishFailures
+        expr: rate(kafka_publish_attempts_total{status="error"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka publish failures detected"
+          description: "Kafka publish failure rate is {{ $value }} per second."
+
+  - name: mailer_service
+    rules:
+      - alert: EmailSendFailures
+        expr: rate(emails_sent_total{status="error"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High email send failure rate"
+          description: "Email send failure rate is {{ $value }} per second."
+
+      - alert: TemplateRenderFailures
+        expr: rate(template_render_duration_seconds_count[5m]) - rate(emails_sent_total{status="success"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Template rendering issues detected"
+          description: "Template rendering failure rate is {{ $value }} per second."
+
+  - name: workflow_agent
+    rules:
+      - alert: WorkflowExecutionFailures
+        expr: rate(workflows_executed_total{status="error"}[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High workflow execution failure rate"
+          description: "Workflow execution failure rate is {{ $value }} per second."
+
+      - alert: CRMAPIFailures
+        expr: rate(crm_api_calls_total{status=~"4..|5.."}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "CRM API failures detected"
+          description: "CRM API failure rate is {{ $value }} per second."
+
+      - alert: LongRunningWorkflows
+        expr: active_workflows > 10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Too many active workflows"
+          description: "There are {{ $value }} active workflows, which may indicate processing delays."
+
+  - name: kafka
+    rules:
+      - alert: KafkaConsumerLag
+        expr: kafka_consumer_lag_sum > 1000
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High Kafka consumer lag"
+          description: "Kafka consumer lag is {{ $value }} messages."
+
+      - alert: KafkaPartitionOffline
+        expr: kafka_topic_partition_leader == -1
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Kafka partition offline"
+          description: "Kafka partition {{ $labels.partition }} of topic {{ $labels.topic }} is offline."
+
+  - name: system_resources
+    rules:
+      - alert: HighMemoryUsage
+        expr: (memory_usage_bytes / (1024*1024*1024)) > 1
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High memory usage"
+          description: "Service {{ $labels.job }} is using {{ $value }}GB of memory."
+
+      - alert: HighCPUUsage
+        expr: cpu_usage_percent > 80
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage"
+          description: "Service {{ $labels.job }} CPU usage is {{ $value }}%."
+
+      - alert: ContainerRestarting
+        expr: increase(container_start_time_seconds[1h]) > 3
+        for: 0m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container restarting frequently"
+          description: "Container {{ $labels.name }} has restarted {{ $value }} times in the last hour."
+
+  - name: event_processing
+    rules:
+      - alert: EventProcessingDelay
+        expr: histogram_quantile(0.95, rate(event_processing_duration_seconds_bucket[5m])) > 5
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High event processing delay"
+          description: "95th percentile event processing time is {{ $value }}s."
+
+      - alert: EventProcessingFailures
+        expr: rate(events_processed_total{status="error"}[5m]) > 0.1
+        for: 3m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High event processing failure rate"
+          description: "Event processing failure rate is {{ $value }} per second."
+
+      - alert: NoEventsProcessed
+        expr: rate(events_processed_total[10m]) == 0
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "No events being processed"
+          description: "No events have been processed by {{ $labels.job }} for the last 10 minutes."
+
+  - name: business_metrics
+    rules:
+      - alert: LowFormSubmissionRate
+        expr: rate(form_submissions_total[1h]) < 0.01
+        for: 30m
+        labels:
+          severity: info
+        annotations:
+          summary: "Low form submission rate"
+          description: "Form submission rate is {{ $value }} per second over the last hour."
+
+      - alert: HighValidationErrorRate
+        expr: rate(validation_errors_total[5m]) / rate(form_submissions_total[5m]) > 0.3
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High validation error rate"
+          description: "Validation error rate is {{ $value | humanizePercentage }} of form submissions."
+
