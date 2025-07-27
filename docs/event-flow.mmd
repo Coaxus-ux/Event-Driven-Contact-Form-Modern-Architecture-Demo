@@ -1,0 +1,52 @@
+sequenceDiagram
+    participant User
+    participant Frontend as React Frontend
+    participant API as Flask API
+    participant Kafka as Event Store
+    participant Mailer as Mailer Service
+    participant Agent as Workflow Agent
+    participant CRM as CRM Mock API
+    participant SMTP as Email Server
+    
+    Note over User, SMTP: Contact Form Submission Flow
+    
+    User->>Frontend: Fill and submit contact form
+    Frontend->>Frontend: Client-side validation
+    Frontend->>API: POST /api/contact (form data)
+    
+    Note over API: Input validation & sanitization
+    API->>API: Validate request payload
+    API->>API: Generate UUIDv7 event ID
+    
+    Note over API, Kafka: Event Publishing
+    API->>Kafka: Publish ContactFormSubmitted event
+    API->>Frontend: Return 202 Accepted + event ID
+    Frontend->>User: Show success message
+    
+    Note over Kafka, SMTP: Parallel Event Processing
+    
+    par Email Processing
+        Kafka->>Mailer: Consume ContactFormSubmitted
+        Mailer->>Mailer: Load Mustache templates
+        Mailer->>Mailer: Generate HTML & text emails
+        Mailer->>SMTP: Send email
+        SMTP-->>Mailer: Delivery confirmation
+        Mailer->>Kafka: Publish EmailDispatched event
+    and Workflow Processing
+        Kafka->>Agent: Consume ContactFormSubmitted
+        Agent->>Agent: Evaluate business rules
+        Agent->>Agent: Plan 3-step workflow
+        Note over Agent: Step 1: Tag lead
+        Agent->>Agent: Execute tag assignment
+        Note over Agent: Step 2: Assign responsible
+        Agent->>Agent: Execute assignment logic
+        Note over Agent: Step 3: Schedule follow-up
+        Agent->>Agent: Execute scheduling
+        Agent->>CRM: POST /internal/leads (create lead)
+        CRM-->>Agent: Return lead ID + status NUEVO
+        Agent->>Kafka: Publish WorkflowCompleted event
+    end
+    
+    Note over User, SMTP: End-to-End Trace Complete
+    Note over Kafka: All events persisted with UUIDv7 + ISO-8601 timestamps
+

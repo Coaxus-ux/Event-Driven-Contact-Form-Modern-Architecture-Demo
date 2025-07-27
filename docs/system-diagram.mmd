@@ -1,0 +1,78 @@
+graph TB
+    subgraph "Frontend Layer"
+        UI[React Frontend<br/>Contact Form]
+    end
+    
+    subgraph "API Layer"
+        API[Flask API Gateway<br/>Validation & Events]
+        CRM[CRM Mock API<br/>Lead Management]
+    end
+    
+    subgraph "Event Streaming"
+        KAFKA[Apache Kafka<br/>Event Store & Streaming]
+    end
+    
+    subgraph "Processing Services"
+        MAILER[Mailer Service<br/>Email Templates & Sending]
+        AGENT[Workflow Agent<br/>Business Process Automation]
+    end
+    
+    subgraph "External Services"
+        SMTP[SMTP Server<br/>Email Delivery]
+        VAULT[HashiCorp Vault<br/>Secret Management]
+    end
+    
+    subgraph "Observability"
+        PROM[Prometheus<br/>Metrics Collection]
+        JAEGER[Jaeger<br/>Distributed Tracing]
+        LOKI[Grafana Loki<br/>Log Aggregation]
+    end
+    
+    %% User interactions
+    UI -->|HTTP POST| API
+    
+    %% Event publishing
+    API -->|ContactFormSubmitted| KAFKA
+    
+    %% Event consumption
+    KAFKA -->|ContactFormSubmitted| MAILER
+    KAFKA -->|ContactFormSubmitted| AGENT
+    
+    %% Service outputs
+    MAILER -->|EmailDispatched| KAFKA
+    MAILER -->|Send Email| SMTP
+    AGENT -->|Create Lead| CRM
+    
+    %% Security
+    API -.->|Secrets| VAULT
+    MAILER -.->|Secrets| VAULT
+    AGENT -.->|Secrets| VAULT
+    
+    %% Observability
+    API -.->|Metrics| PROM
+    API -.->|Traces| JAEGER
+    API -.->|Logs| LOKI
+    
+    MAILER -.->|Metrics| PROM
+    MAILER -.->|Traces| JAEGER
+    MAILER -.->|Logs| LOKI
+    
+    AGENT -.->|Metrics| PROM
+    AGENT -.->|Traces| JAEGER
+    AGENT -.->|Logs| LOKI
+    
+    %% Styling
+    classDef frontend fill:#e1f5fe
+    classDef api fill:#f3e5f5
+    classDef event fill:#fff3e0
+    classDef service fill:#e8f5e8
+    classDef external fill:#fce4ec
+    classDef observability fill:#f1f8e9
+    
+    class UI frontend
+    class API,CRM api
+    class KAFKA event
+    class MAILER,AGENT service
+    class SMTP,VAULT external
+    class PROM,JAEGER,LOKI observability
+
