@@ -1,336 +1,191 @@
-# Event-Driven Architecture Proof of Concept
+**Event-Driven Architecture Proof of Concept**
 
-A comprehensive demonstration of modern event-driven architecture patterns using microservices, event sourcing, and distributed system observability.
+A monorepo demonstrating a full event‑driven system with microservices, event sourcing, and observability, orchestrated via Docker Compose.
 
-## 🏗️ Architecture Overview
+---
 
-This proof-of-concept implements a complete event-driven system with the following components:
+## Overview
 
-- **Frontend**: React 18 application with modern UI components
-- **API Service**: Flask-based REST API with event publishing
-- **Mailer Service**: Automated email processing with Mustache templates
-- **Workflow Agent**: Multi-step business process automation
-- **Event Broker**: Apache Kafka for reliable event streaming
-- **Infrastructure**: Docker containers with docker-compose orchestration
+* **Frontend**: React 18 application served by Nginx
+* **API Service**: Flask‑based REST API that publishes events to Kafka
+* **Mailer Service**: Kafka consumer sending emails via Mustache templates
+* **Workflow Agent**: Multi‑step business workflow driven by events
+* **Event Broker**: Apache Kafka with Zookeeper
+* **Monitoring**: Prometheus, Grafana, Kafka‑UI, cAdvisor, Node Exporter
+* **Shared**: common logging, metrics, security, and tracing configuration
 
-## 🚀 Quick Start
+---
 
-### Prerequisites
+## Repository Layout
 
-- Docker 20.10+ and Docker Compose 2.0+
-- 8GB+ RAM recommended
-- Ports 3000, 5000, 8080, 9092 available
-
-### One-Command Deployment
-
-```bash
-./deploy.sh start
+```
+/
+├── docker-compose.yml           # Orchestration for all services
+├── .env.example                 # Environment‑variable template
+├── deploy.sh                    # Helper script (in backend/ by default)
+├── api/                         # Flask API service
+├── frontend/                    # React + Vite + Nginx
+├── mailer-service/              # Email‑processing microservice
+├── workflow-agent/              # Event‑driven workflow executor
+├── shared/                      # Cross‑service configs and utilities
+└── monitoring/                  # Prometheus, Alert Rules, Grafana dashboards
 ```
 
-This will:
-1. Build all service containers
-2. Start Kafka, Zookeeper, and all microservices
-3. Wait for services to be healthy
-4. Display service URLs and status
+---
 
-### Access the Application
+## Prerequisites
 
-- **Frontend**: http://localhost:3000
-- **API Documentation**: http://localhost:5000/api/docs
-- **Kafka UI**: http://localhost:8080
+* Docker 20.10+ & Docker Compose 2.x
+* ≥ 8 GB RAM (4 GB minimum)
+* Ports 3000, 5000, 9092, 9090, 8080, 8025 free
 
-## 📋 Deployment Commands
+---
 
-```bash
-# Start all services
-./deploy.sh start
+## Quick Start
 
-# Stop all services
-./deploy.sh stop
+1. Copy and customize environment variables:
 
-# Restart all services
-./deploy.sh restart
+   ```bash
+   cp .env.example .env
+   ```
+2. Launch all services:
 
-# Show service status
-./deploy.sh status
+   ```bash
+   docker-compose up -d
+   ```
+3. Verify health:
 
-# View logs (all services)
-./deploy.sh logs
+   * Frontend → [http://localhost:3000](http://localhost:3000)
+   * API → [http://localhost:5001/health](http://localhost:5001/health)
+   * Kafka‑UI → [http://localhost:8080](http://localhost:8080)
+   * Prometheus → [http://localhost:9090](http://localhost:9090)
+   * Grafana → [http://localhost:3001](http://localhost:3001)
 
-# View logs for specific service
-./deploy.sh logs api
-./deploy.sh logs mailer
-./deploy.sh logs workflow-agent
+---
 
-# Restart specific service
-./deploy.sh restart-service api
+## Service Endpoints
 
-# Build services without starting
-./deploy.sh build
+* **API**
 
-# Clean up all resources
-./deploy.sh cleanup
+  * Health: `GET /health`
+  * Contact form: `POST /api/contact`
+  * CRM (mock): `POST /api/internal/leads`
+* **Mailer**
 
-# Show help
-./deploy.sh help
-```
+  * Consumes `ContactFormSubmitted` events → sends email
+* **Workflow Agent**
 
-## 🔧 Configuration
+  * Listens on same Kafka topic → runs multi‑step workflow
 
-### Environment Variables
+---
 
-Copy `.env.example` to `.env` and customize:
+## Configuration
 
-```bash
-cp .env.example .env
-```
-
-Key configuration options:
+All services read from environment variables. Key settings:
 
 ```env
-# Kafka Configuration
+# Kafka
 KAFKA_BOOTSTRAP_SERVERS=kafka:29092
 KAFKA_TOPIC=events.contact_form
 
-# Email Configuration
-SMTP_HOST=localhost
-FROM_EMAIL=noreply@event-driven-poc.com
-
-# API Configuration
-CORS_ORIGINS=*
+# API
 API_PORT=5000
+CORS_ORIGINS=*
+
+# Mailer
+SMTP_HOST=mailhog
+SMTP_PORT=1025
+
+# Workflow Agent
+CRM_API_BASE=http://api:5000/api
+CRM_API_TIMEOUT=30
+
+# Frontend
+REACT_APP_API_BASE_URL=http://localhost:5001/api
 ```
 
-### Service Configuration
+---
 
-Each service can be configured via environment variables:
+## Development
 
-#### API Service
-- `FLASK_ENV`: Environment (development/production)
-- `KAFKA_BOOTSTRAP_SERVERS`: Kafka connection string
-- `CORS_ORIGINS`: Allowed CORS origins
+### Running Locally (without Docker)
 
-#### Mailer Service
-- `SMTP_HOST`: SMTP server hostname
-- `SMTP_PORT`: SMTP server port
-- `FROM_EMAIL`: Sender email address
+1. Start Kafka & Zookeeper:
 
-#### Workflow Agent
-- `CRM_API_BASE`: CRM API base URL
-- `CRM_API_TIMEOUT`: API timeout in seconds
-
-## 🏃‍♂️ Development Mode
-
-For development with hot reloading:
-
-```bash
-# Start infrastructure only
-docker-compose up -d kafka zookeeper kafka-ui
-
-# Run services locally
-cd api && python main.py
-cd mailer-service && python main.py
-cd workflow-agent && python main.py
-cd frontend && pnpm run dev
-```
-
-## 📊 Monitoring and Observability
-
-### Kafka UI
-Access Kafka topics, consumers, and messages at http://localhost:8080
-
-### Service Health Checks
-```bash
-# API health
-curl http://localhost:5000/health
-
-# Frontend health
-curl http://localhost:3000/health
-
-# Service status
-./deploy.sh status
-```
-
-### Logs
-```bash
-# All service logs
-docker-compose logs -f
-
-# Specific service logs
-docker-compose logs -f api
-docker-compose logs -f mailer
-docker-compose logs -f workflow-agent
-```
-
-## 🔄 Event Flow
-
-1. **Form Submission**: User submits contact form via React frontend
-2. **Event Publishing**: API publishes `ContactFormSubmitted` event to Kafka
-3. **Parallel Processing**: 
-   - Mailer service consumes event and sends confirmation email
-   - Workflow agent consumes event and executes 3-step workflow
-4. **Email Dispatch**: Mailer publishes `EmailDispatched` event
-5. **Workflow Completion**: Agent publishes `WorkflowCompleted` event
-6. **CRM Integration**: Lead created in mock CRM system
-
-## 🧪 Testing the System
-
-### End-to-End Test
-
-1. Open http://localhost:3000
-2. Click "Try Live Demo"
-3. Fill out the contact form
-4. Submit the form
-5. Check logs to see event processing:
    ```bash
-   ./deploy.sh logs
+   docker-compose up -d zookeeper kafka kafka-ui
+   ```
+2. In separate terminals, run each service:
+
+   ```bash
+   # API
+   cd api && pip install -r requirements.txt && python main.py
+
+   # Mailer
+   cd mailer-service && pip install -r requirements.txt && python main.py
+
+   # Workflow Agent
+   cd workflow-agent && pip install -r requirements.txt && python main.py
+
+   # Frontend
+   cd frontend && pnpm install && pnpm run dev
    ```
 
-### Event Verification
+---
 
-Monitor events in Kafka UI:
-1. Go to http://localhost:8080
-2. Navigate to Topics → `events.contact_form`
-3. View messages to see event flow
+## Testing
 
-## 🏗️ Service Architecture
+Each service includes its own tests. From repo root:
 
-### API Service (`/api`)
-- Flask REST API with CORS support
-- Event publishing to Kafka
-- Contact form validation
-- Mock CRM endpoints
-
-### Mailer Service (`/mailer-service`)
-- Kafka event consumer
-- Mustache template engine
-- HTML/text email generation
-- SMTP integration (mock in development)
-
-### Workflow Agent (`/workflow-agent`)
-- Multi-step workflow engine
-- Lead tagging and assignment logic
-- CRM integration
-- Compensation pattern implementation
-
-### Frontend (`/frontend`)
-- React 18 with modern UI components
-- Responsive design
-- Form validation
-- Real-time status updates
-
-## 🐳 Docker Configuration
-
-### Service Images
-- **API**: Python 3.11 slim with Flask
-- **Mailer**: Python 3.11 slim with email libraries
-- **Workflow**: Python 3.11 slim with HTTP clients
-- **Frontend**: Multi-stage build (Node.js → Nginx)
-
-### Networking
-All services communicate via `event-poc-network` bridge network.
-
-### Volumes
-- `kafka-data`: Persistent Kafka data
-- `zookeeper-data`: Persistent Zookeeper data
-- Service logs mounted for debugging
-
-## 🔒 Security Considerations
-
-### Development Security
-- Services run as non-root users
-- Network isolation via Docker networks
-- Health checks for service monitoring
-
-### Production Recommendations
-- Enable TLS for Kafka
-- Use secrets management for credentials
-- Implement authentication/authorization
-- Enable audit logging
-- Use production SMTP server
-
-## 🚨 Troubleshooting
-
-### Common Issues
-
-#### Services Not Starting
 ```bash
-# Check Docker status
-docker info
+# Example: run API tests
+cd api && python -m pytest
 
-# Check service logs
-./deploy.sh logs
-
-# Restart specific service
-./deploy.sh restart-service <service-name>
+# Or use the included runner script
+./run_tests.sh all
 ```
 
-#### Port Conflicts
-```bash
-# Check port usage
-netstat -tulpn | grep :3000
-netstat -tulpn | grep :5000
-netstat -tulpn | grep :9092
-```
+---
 
-#### Kafka Connection Issues
-```bash
-# Check Kafka health
-docker-compose exec kafka kafka-broker-api-versions --bootstrap-server localhost:9092
+## Monitoring & Observability
 
-# Restart Kafka
-./deploy.sh restart-service kafka
-```
+* **Kafka‑UI**: inspect topics and messages at `http://localhost:8080`
+* **Prometheus**: metrics collection at `http://localhost:9090`
+* **Grafana**: dashboards at `http://localhost:3001` (admin/password = admin)
+* **cAdvisor** & **Node Exporter**: container and host metrics
 
-#### Frontend Not Loading
-```bash
-# Check nginx logs
-docker-compose logs frontend
+---
 
-# Verify API connectivity
-curl http://localhost:5000/health
-```
+## Troubleshooting
 
-### Resource Requirements
+* **Port conflicts**:
 
-Minimum system requirements:
-- **CPU**: 2 cores
-- **RAM**: 4GB (8GB recommended)
-- **Disk**: 2GB free space
-- **Network**: Internet access for Docker images
+  ```bash
+  netstat -tulpn | grep -E "3000|5001|9092|9090|8080"
+  ```
+* **Check logs**:
 
-## 📈 Performance Tuning
+  ```bash
+  docker-compose logs -f <service-name>
+  ```
+* **Restart a service**:
 
-### Kafka Optimization
-```env
-KAFKA_NUM_PARTITIONS=3
-KAFKA_CONSUMER_MAX_POLL_RECORDS=10
-KAFKA_PRODUCER_BATCH_SIZE=16384
-```
+  ```bash
+  docker-compose restart api
+  ```
 
-### Service Scaling
-```bash
-# Scale specific service
-docker-compose up -d --scale mailer=2
-docker-compose up -d --scale workflow-agent=2
-```
+---
 
-## 🤝 Contributing
+## Contributing
 
-1. Fork the repository
-2. Create feature branch
-3. Make changes
-4. Test with `./deploy.sh start`
-5. Submit pull request
+1. Fork this repository
+2. Create a feature branch
+3. Make changes & add tests
+4. Ensure all tests pass
+5. Submit a pull request
 
-## 📄 License
+---
 
-This project is licensed under the MIT License - see the LICENSE file for details.
+## License
 
-## 🆘 Support
-
-For issues and questions:
-1. Check the troubleshooting section
-2. Review service logs: `./deploy.sh logs`
-3. Open an issue with system information and logs
-
+Distributed under the MIT License. See [LICENSE](LICENSE) for details.
